@@ -5,7 +5,7 @@
 export const CONFIG = {
   APP_NAME: 'SecretPix',
   TAGLINE: 'Hide in Plain Sight. Share with Confidence.',
-  VERSION: '1.0.0',
+  VERSION: '1.1.0',
 
   // Binary Protocol Constants
   PROTOCOL: {

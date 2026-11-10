@@ -59,6 +59,16 @@ SecretPix combines military-grade authenticated encryption with pixel-level steg
 
 ---
 
+## 📱 Progressive Web App (PWA) & Offline Air-Gapping
+
+SecretPix is a fully-featured **Progressive Web App (PWA)**:
+* **True Air-Gapped Mode:** Automatically pre-caches all code and assets via [`sw.js`](sw.js). Once loaded or installed, you can disconnect from Wi-Fi/Internet entirely and SecretPix remains 100% functional.
+* **Installable:** Install as a standalone native-like desktop app (macOS, Windows, Linux) or mobile app (iOS, Android) via the "Install App" button in Settings or browser prompt.
+* **Auto-Update Detection:** When online, the service worker checks for updates in the background. A notification banner alerts you when a new release is available with a 1-click "Update Now" action.
+* **Settings & Diagnostics Page:** Includes real-time internet connectivity indicators, runtime hardware diagnostics (Web Crypto, Canvas, Worker, Service Worker), and an **Emergency Memory Purge** button to immediately scrub volatile memory.
+
+---
+
 ## 🎨 Design System
 
 SecretPix features a premium, minimalist mint, sage, and pistachio color scheme:

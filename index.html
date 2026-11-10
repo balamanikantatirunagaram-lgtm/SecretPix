@@ -6,6 +6,11 @@
   <meta name="description" content="SecretPix — Privacy-focused client-side image steganography and AES-256-GCM encryption. Hide confidential messages inside ordinary images.">
   <title>SecretPix — Hide in Plain Sight</title>
   
+  <!-- Progressive Web App Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#52796F">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.svg">
+
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
@@ -36,9 +41,14 @@
           <button class="nav-link" data-view="viewHide">Hide Message</button>
           <button class="nav-link" data-view="viewReveal">Reveal Message</button>
           <button class="nav-link" data-view="viewAbout">About</button>
+          <button class="nav-link" data-view="viewSettings">Settings</button>
         </nav>
 
-        <div class="header-status">
+        <div class="header-status" style="display: flex; gap: 8px; align-items: center;">
+          <span id="networkStatusBadge" class="badge badge-mint">
+            <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--color-success); margin-right:4px;"></span>
+            Online
+          </span>
           <span class="badge badge-mint">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             100% Client-Side
@@ -51,6 +61,23 @@
   <!-- Main Content Area -->
   <main class="main-content">
     <div class="container">
+
+      <!-- PWA Update Notification Banner -->
+      <div id="updateBanner" class="card card-pistachio" style="display: none; margin-bottom: var(--space-6); padding: var(--space-4) var(--space-6); border-radius: var(--radius-lg); align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="brand-icon" style="width: 32px; height: 32px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </div>
+          <div>
+            <strong style="color: var(--color-text);">A new version of SecretPix is available!</strong>
+            <p style="font-size: var(--text-xs); color: var(--color-text-secondary); margin: 0;">Update to receive the latest security enhancements.</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-primary btn-sm" id="updateNowBtn">Update Now</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="dismissUpdateBtn">Later</button>
+        </div>
+      </div>
 
       <!-- ==========================================
            VIEW 1: DASHBOARD
@@ -420,6 +447,146 @@
               Always send the encoded PNG as a <em>document/raw file</em>, via AirDrop, email attachment, or secure cloud drives.
             </p>
           </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 5: SETTINGS & PWA DIAGNOSTICS
+           ========================================== -->
+      <section id="viewSettings" class="view-section">
+        <div class="workspace-header">
+          <h2 class="workspace-title">Application Settings & Diagnostics</h2>
+          <p class="workspace-subtitle">Manage offline PWA configuration, update detection, cryptographic parameters, and memory hygiene.</p>
+        </div>
+
+        <div style="display: grid; gap: var(--space-6); max-width: 840px; margin: 0 auto;">
+          
+          <!-- Card 1: PWA & Auto-Update Management -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div>
+                <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">PWA & Updates</h3>
+                <p style="font-size: var(--text-xs); color: var(--color-text-secondary);">Offline caching and automated update detection.</p>
+              </div>
+              <span class="badge badge-mint font-mono" id="appVersionBadge">v1.1.0</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <!-- Connection State -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Internet Connectivity</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Required for update detection; optional for core encryption</div>
+                </div>
+                <span id="settingsNetworkBadge" class="badge badge-mint">Online</span>
+              </div>
+
+              <!-- Install State -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">PWA Installation</div>
+                  <div id="settingsInstallDesc" style="font-size: var(--text-xs); color: var(--color-text-secondary);">Installable as an air-gapped standalone application</div>
+                </div>
+                <div id="installButtonContainer">
+                  <button type="button" class="btn btn-secondary btn-sm" id="installPwaBtn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Install App
+                  </button>
+                </div>
+              </div>
+
+              <!-- Check Updates -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Check for Updates</div>
+                  <div id="lastUpdateCheckText" style="font-size: var(--text-xs); color: var(--color-text-secondary);">Queries service worker for new releases over the internet</div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="checkUpdatesBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Check Updates
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Cryptographic & Steganographic Configuration -->
+          <div class="card">
+            <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">Security Parameters</h3>
+            <p style="font-size: var(--text-xs); color: var(--color-text-secondary); margin-bottom: 1rem;">Active cryptographic algorithms and tamper-defense configurations.</p>
+
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">PBKDF2 Work Factor</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">SHA-256 derivation rounds (mitigates offline brute force)</div>
+                </div>
+                <span class="badge badge-mint font-mono">600,000 Iterations</span>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">AEAD Header Integrity (AAD)</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Salt, IV, and metadata in pixels cryptographically bound to GCM tag</div>
+                </div>
+                <span class="badge badge-success font-mono">Active (AAD)</span>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Plaintext Length Padding</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">PKCS#7 64-byte blocks mask message length side-channels</div>
+                </div>
+                <span class="badge badge-success font-mono">64-Byte Blocks</span>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Dimension Guard Limit</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Maximum canvas pixel allocation to prevent browser OOM</div>
+                </div>
+                <span class="badge badge-neutral font-mono">25 Megapixels (~100MB)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Memory Hygiene & Volatile Scrubbing -->
+          <div class="card">
+            <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">Memory Hygiene & Cache</h3>
+            <p style="font-size: var(--text-xs); color: var(--color-text-secondary); margin-bottom: 1rem;">Verify zero persistent storage and purge active volatile memory.</p>
+
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Persistent Data Storage</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Plaintext messages, passwords, and keys are NEVER written to disk</div>
+                </div>
+                <span class="badge badge-success">Zero Disk Storage</span>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
+                <div>
+                  <div style="font-size: var(--text-sm); font-weight: 600;">Emergency Memory Purge</div>
+                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Instantly zero all in-memory image buffers, text inputs, and keys</div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="purgeMemoryBtn" style="color: var(--color-error); border-color: rgba(217, 83, 79, 0.3);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Purge Memory Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Hardware & Runtime Diagnostics -->
+          <div class="card card-surface font-mono" style="font-size: var(--text-xs); color: var(--color-text-secondary);">
+            <h4 style="font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 600; color: var(--color-text); margin-bottom: 8px;">Hardware & Runtime Diagnostics</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div>Web Crypto API: <span id="diagCrypto" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
+              <div>HTML5 Canvas API: <span id="diagCanvas" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
+              <div>Dedicated Web Worker: <span id="diagWorker" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
+              <div>Service Worker (PWA): <span id="diagSW" style="color: var(--color-success); font-weight: 600;">Checking...</span></div>
+            </div>
+          </div>
+
         </div>
       </section>
 

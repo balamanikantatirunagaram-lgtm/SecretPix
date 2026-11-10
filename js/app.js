@@ -215,9 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPasswordToggle('toggleHidePassword', 'hidePasswordInput');
   setupPasswordToggle('toggleRevealPassword', 'revealPasswordInput');
 
-  // Initialize Workspaces
+  // Initialize Workspaces & Settings
   initHideWorkspace();
   initRevealWorkspace();
+  initSettingsWorkspace();
+  initPwaAndUpdates();
 });
 
 /* ==========================================================================
@@ -700,4 +702,315 @@ function setupDropzone(dropzone, onFileSelected) {
       onFileSelected(files[0]);
     }
   });
+}
+
+/* ==========================================================================
+   SETTINGS WORKSPACE & DIAGNOSTICS
+   ========================================================================== */
+
+function initSettingsWorkspace() {
+  const purgeBtn = document.getElementById('purgeMemoryBtn');
+  if (purgeBtn) {
+    purgeBtn.addEventListener('click', () => {
+      // 1. Revoke loaded images
+      revokeImageElement(state.hide.imageElement);
+      revokeImageElement(state.reveal.imageElement);
+      if (state.hide.modalPreviewUrl) {
+        try { URL.revokeObjectURL(state.hide.modalPreviewUrl); } catch (e) {}
+      }
+
+      // 2. Wipe memory states
+      state.hide = {
+        file: null,
+        imageElement: null,
+        imageData: null,
+        width: 0,
+        height: 0,
+        encodedBlob: null,
+        modalPreviewUrl: null,
+      };
+      state.reveal = {
+        file: null,
+        imageElement: null,
+        imageData: null,
+        hasPayload: false,
+        recoveredText: '',
+      };
+
+      // 3. Clear DOM inputs
+      const hideMessageInput = document.getElementById('hideMessageInput');
+      const hidePasswordInput = document.getElementById('hidePasswordInput');
+      const hideConfirmPasswordInput = document.getElementById('hideConfirmPasswordInput');
+      const revealPasswordInput = document.getElementById('revealPasswordInput');
+
+      if (hideMessageInput) hideMessageInput.value = '';
+      if (hidePasswordInput) hidePasswordInput.value = '';
+      if (hideConfirmPasswordInput) hideConfirmPasswordInput.value = '';
+      if (revealPasswordInput) revealPasswordInput.value = '';
+
+      // 4. Reset UI displays
+      const hidePreviewBox = document.getElementById('hideImagePreviewBox');
+      const hideDropzone = document.getElementById('hideDropzone');
+      const capacityContainer = document.getElementById('capacityContainer');
+      const revealPreviewBox = document.getElementById('revealImagePreviewBox');
+      const revealDropzone = document.getElementById('revealDropzone');
+      const revealDetectionBadge = document.getElementById('revealDetectionBadge');
+      const recoveredBox = document.getElementById('recoveredMessageBox');
+
+      if (hidePreviewBox) hidePreviewBox.classList.add('hidden');
+      if (hideDropzone) hideDropzone.classList.remove('hidden');
+      if (capacityContainer) capacityContainer.classList.add('hidden');
+      if (revealPreviewBox) revealPreviewBox.classList.add('hidden');
+      if (revealDropzone) revealDropzone.classList.remove('hidden');
+      if (revealDetectionBadge) revealDetectionBadge.style.display = 'none';
+      if (recoveredBox) recoveredBox.classList.add('hidden');
+
+      showToast('All volatile memory and image buffers have been purged.', 'success', 3500);
+    });
+  }
+
+  // Diagnostics check
+  const diagCrypto = document.getElementById('diagCrypto');
+  const diagCanvas = document.getElementById('diagCanvas');
+  const diagWorker = document.getElementById('diagWorker');
+
+  if (diagCrypto) {
+    const hasCrypto = typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
+    diagCrypto.textContent = hasCrypto ? 'Active (AES-GCM/PBKDF2) ✅' : 'Unavailable ❌';
+    diagCrypto.style.color = hasCrypto ? 'var(--color-success)' : 'var(--color-error)';
+  }
+
+  if (diagCanvas) {
+    const hasCanvas = typeof document !== 'undefined' && !!document.createElement('canvas').getContext;
+    diagCanvas.textContent = hasCanvas ? 'Active (ImageData 2D) ✅' : 'Unavailable ❌';
+    diagCanvas.style.color = hasCanvas ? 'var(--color-success)' : 'var(--color-error)';
+  }
+
+  if (diagWorker) {
+    const hasWorker = typeof Worker !== 'undefined';
+    diagWorker.textContent = hasWorker ? 'Active (Dedicated Background) ✅' : 'Fallback Mode ⚠️';
+    diagWorker.style.color = hasWorker ? 'var(--color-success)' : 'var(--color-warning)';
+  }
+}
+
+/* ==========================================================================
+   PWA & AUTO-UPDATE LIFECYCLE MANAGEMENT
+   ========================================================================== */
+
+let deferredInstallPrompt = null;
+let swRegistration = null;
+
+function initPwaAndUpdates() {
+  const diagSW = document.getElementById('diagSW');
+  const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+  const lastUpdateCheckText = document.getElementById('lastUpdateCheckText');
+  const updateBanner = document.getElementById('updateBanner');
+  const updateNowBtn = document.getElementById('updateNowBtn');
+  const dismissUpdateBtn = document.getElementById('dismissUpdateBtn');
+  const installPwaBtn = document.getElementById('installPwaBtn');
+  const settingsInstallDesc = document.getElementById('settingsInstallDesc');
+
+  // 1. Online / Offline Real-time Monitoring
+  function updateNetworkStatus() {
+    const isOnline = navigator.onLine;
+    const headerBadge = document.getElementById('networkStatusBadge');
+    const settingsBadge = document.getElementById('settingsNetworkBadge');
+
+    const badgeHtml = isOnline
+      ? `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--color-success); margin-right:4px;"></span> Online`
+      : `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--color-warning); margin-right:4px;"></span> Air-Gapped (Offline)`;
+
+    const badgeClass = isOnline ? 'badge badge-mint' : 'badge badge-pistachio';
+
+    if (headerBadge) {
+      headerBadge.innerHTML = badgeHtml;
+      headerBadge.className = badgeClass;
+    }
+    if (settingsBadge) {
+      settingsBadge.innerHTML = badgeHtml;
+      settingsBadge.className = badgeClass;
+    }
+  }
+
+  window.addEventListener('online', () => {
+    updateNetworkStatus();
+    showToast('Internet restored. Checking for SecretPix updates...', 'info', 3000);
+    checkForServiceWorkerUpdates(false);
+  });
+
+  window.addEventListener('offline', () => {
+    updateNetworkStatus();
+    showToast('Air-gapped mode active: SecretPix is completely offline.', 'info', 4000);
+  });
+
+  updateNetworkStatus();
+
+  // 2. Capture PWA Installation Prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+
+    if (installPwaBtn) {
+      installPwaBtn.disabled = false;
+      installPwaBtn.classList.remove('btn-secondary');
+      installPwaBtn.classList.add('btn-primary');
+    }
+    if (settingsInstallDesc) {
+      settingsInstallDesc.textContent = 'Ready to install as standalone desktop/mobile app';
+    }
+  });
+
+  if (installPwaBtn) {
+    installPwaBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        showToast('SecretPix installation confirmed!', 'success', 3000);
+        installPwaBtn.disabled = true;
+        installPwaBtn.textContent = 'Installed ✅';
+      }
+      deferredInstallPrompt = null;
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    if (settingsInstallDesc) settingsInstallDesc.textContent = 'Installed as standalone desktop/mobile app ✅';
+    if (installPwaBtn) {
+      installPwaBtn.disabled = true;
+      installPwaBtn.textContent = 'Installed ✅';
+    }
+    showToast('SecretPix successfully installed as a PWA!', 'success', 3500);
+  });
+
+  // Check if already running in standalone display mode
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    if (settingsInstallDesc) settingsInstallDesc.textContent = 'Running in standalone native window ✅';
+    if (installPwaBtn) {
+      installPwaBtn.disabled = true;
+      installPwaBtn.textContent = 'Installed ✅';
+    }
+  }
+
+  // 3. Register Service Worker (over HTTP/HTTPS)
+  if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('./sw.js')
+      .then((registration) => {
+        swRegistration = registration;
+        if (diagSW) {
+          diagSW.textContent = 'Active (Offline Ready) ✅';
+          diagSW.style.color = 'var(--color-success)';
+        }
+
+        // Listen for new worker versions installing
+        registration.addEventListener('updatefound', () => {
+          const installingWorker = registration.installing;
+          if (!installingWorker) return;
+
+          installingWorker.addEventListener('statechange', () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // A new version has been found and cached!
+              promptUserForUpdate();
+            }
+          });
+        });
+
+        // Periodic check when tab is focused
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && navigator.onLine) {
+            registration.update().catch(() => {});
+          }
+        });
+      })
+      .catch((err) => {
+        console.warn('SecretPix: Service worker registration error:', err);
+        if (diagSW) {
+          diagSW.textContent = 'Unavailable ⚠️';
+          diagSW.style.color = 'var(--color-warning)';
+        }
+      });
+
+    // Reload page once new controller activates
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  } else {
+    if (diagSW) {
+      diagSW.textContent = 'Inactive (file:// origin) ⚠️';
+      diagSW.style.color = 'var(--color-warning)';
+    }
+  }
+
+  // 4. Update Notifications & Actions
+  function promptUserForUpdate() {
+    if (updateBanner) updateBanner.style.display = 'flex';
+    showToast('A new update is available! Click Update Now to refresh.', 'info', 6000);
+  }
+
+  if (updateNowBtn) {
+    updateNowBtn.addEventListener('click', () => {
+      if (swRegistration && swRegistration.waiting) {
+        swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
+      }
+    });
+  }
+
+  if (dismissUpdateBtn) {
+    dismissUpdateBtn.addEventListener('click', () => {
+      if (updateBanner) updateBanner.style.display = 'none';
+    });
+  }
+
+  // 5. Manual Check for Updates Button on Settings Page
+  async function checkForServiceWorkerUpdates(isManual = true) {
+    if (!swRegistration) {
+      if (isManual) showToast('Service worker is not active in this environment.', 'info', 3000);
+      return;
+    }
+
+    if (!navigator.onLine) {
+      if (isManual) showToast('Cannot check for updates: device is offline.', 'error', 3000);
+      return;
+    }
+
+    if (checkUpdatesBtn && isManual) {
+      checkUpdatesBtn.disabled = true;
+      checkUpdatesBtn.innerHTML = `<span class="spinner spinner-primary" style="margin-right: 6px;"></span> Checking...`;
+    }
+
+    try {
+      await swRegistration.update();
+      const timestamp = new Date().toLocaleTimeString();
+      if (lastUpdateCheckText) {
+        lastUpdateCheckText.textContent = `Last checked at ${timestamp} (Online)`;
+      }
+
+      if (swRegistration.waiting) {
+        promptUserForUpdate();
+      } else if (isManual) {
+        showToast('SecretPix is up to date! (v' + CONFIG.VERSION + ')', 'success', 3000);
+      }
+    } catch (err) {
+      console.warn('Update check failed:', err);
+      if (isManual) showToast('Update check failed: ' + err.message, 'error', 3000);
+    } finally {
+      if (checkUpdatesBtn && isManual) {
+        checkUpdatesBtn.disabled = false;
+        checkUpdatesBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Check Updates
+        `;
+      }
+    }
+  }
+
+  if (checkUpdatesBtn) {
+    checkUpdatesBtn.addEventListener('click', () => checkForServiceWorkerUpdates(true));
+  }
 }
