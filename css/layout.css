@@ -12,18 +12,35 @@
   padding-right: var(--space-4);
 }
 
+@media (max-width: 480px) {
+  .container {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}
+
 /* Header & Navbar */
 .site-header {
   height: var(--header-height);
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
+  transition: height var(--transition-fast);
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    height: var(--header-height-mobile, 58px);
+  }
+  .site-header .nav-links {
+    display: none; /* Delegated to mobile bottom navigation */
+  }
 }
 
 .header-inner {
@@ -31,6 +48,18 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.header-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .header-status .badge-desktop-only {
+    display: none !important;
+  }
 }
 
 .brand-logo {
@@ -106,6 +135,12 @@
   padding: var(--space-8) 0 var(--space-16);
 }
 
+@media (max-width: 640px) {
+  .main-content {
+    padding: var(--space-4) 0 calc(var(--bottom-nav-height, 60px) + var(--space-8) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Views & Tabs */
 .view-section {
   display: none;
@@ -129,12 +164,18 @@
   margin: 0 auto;
 }
 
+@media (max-width: 640px) {
+  .hero-section {
+    padding: var(--space-6) 0 var(--space-8);
+  }
+}
+
 .hero-pill {
   margin-bottom: var(--space-4);
 }
 
 .hero-title {
-  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-size: clamp(1.75rem, 6.5vw, 3.25rem);
   line-height: 1.15;
   margin-bottom: var(--space-4);
   color: var(--color-text);
@@ -151,6 +192,13 @@
   line-height: var(--leading-relaxed);
 }
 
+@media (max-width: 640px) {
+  .hero-subtitle {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-6);
+  }
+}
+
 .hero-actions {
   display: flex;
   align-items: center;
@@ -159,12 +207,34 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 480px) {
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-3);
+  }
+  .hero-actions .btn {
+    width: 100%;
+  }
+}
+
 /* Feature Cards Grid */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-6);
   margin-bottom: var(--space-16);
+}
+
+@media (max-width: 640px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-bottom: var(--space-10);
+  }
+  .feature-card .btn {
+    width: 100%;
+  }
 }
 
 .feature-card {
@@ -225,6 +295,13 @@
   }
 }
 
+@media (max-width: 640px) {
+  .workspace-layout {
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+}
+
 .workspace-header {
   margin-bottom: var(--space-6);
 }
@@ -232,6 +309,12 @@
 .workspace-title {
   font-size: var(--text-2xl);
   margin-bottom: var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .workspace-title {
+    font-size: clamp(1.35rem, 5vw, 1.75rem);
+  }
 }
 
 .workspace-subtitle {
@@ -245,10 +328,22 @@
   border-top: 1px solid var(--color-border);
 }
 
+@media (max-width: 640px) {
+  .steps-section {
+    padding: var(--space-8) 0;
+  }
+}
+
 .section-header {
   text-align: center;
   max-width: 600px;
   margin: 0 auto var(--space-10);
+}
+
+@media (max-width: 640px) {
+  .section-header {
+    margin-bottom: var(--space-6);
+  }
 }
 
 .section-title {
@@ -265,6 +360,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
 }
 
 .step-card {
@@ -308,6 +410,14 @@
   margin-top: var(--space-8);
 }
 
+@media (max-width: 640px) {
+  .trust-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+}
+
 .trust-item {
   display: flex;
   align-items: flex-start;
@@ -346,6 +456,13 @@
   color: var(--color-text-secondary);
 }
 
+@media (max-width: 640px) {
+  .site-footer {
+    padding-bottom: calc(var(--bottom-nav-height, 60px) + var(--space-6) + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+  }
+}
+
 .footer-inner {
   display: flex;
   flex-direction: column;
@@ -363,4 +480,10 @@
 .footer-links {
   display: flex;
   gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .footer-links {
+    justify-content: center;
+  }
 }

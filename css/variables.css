@@ -96,4 +96,9 @@
   /* Layout Constraints */
   --container-max: 1200px;
   --header-height: 72px;
+  --header-height-mobile: 58px;
+  --bottom-nav-height: 60px;
+  --touch-target-min: 44px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
 }

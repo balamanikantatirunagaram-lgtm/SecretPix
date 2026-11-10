@@ -1,6 +1,6 @@
 /**
  * SecretPix — Progressive Web App Service Worker
- * Version: 1.1.0
+ * Version: 1.1.1
  *
  * Implements:
  * - Cache-First asset retrieval for 100% offline air-gapped operation
@@ -9,7 +9,7 @@
  * - Stale cache eviction on activation
  */
 
-const CACHE_NAME = 'secretpix-v1.1.0';
+const CACHE_NAME = 'secretpix-v1.1.1';
 
 const PRECACHE_ASSETS = [
   './',

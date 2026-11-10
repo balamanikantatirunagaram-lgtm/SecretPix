@@ -29,6 +29,8 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: 0;
 }
 
 /* Typography Hierarchy */
@@ -77,6 +79,26 @@ input, textarea, button, select {
   border: none;
   outline: none;
   background: none;
+  touch-action: manipulation;
+}
+
+/* Minimum 16px font-size prevents involuntary auto-zoom on iOS Safari */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+textarea,
+select {
+  font-size: 16px;
+}
+
+img, svg, canvas {
+  max-width: 100%;
+}
+
+p, span, div, strong, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
 }
 
 button {

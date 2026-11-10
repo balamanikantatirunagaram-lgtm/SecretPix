@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="SecretPix — Privacy-focused client-side image steganography and AES-256-GCM encryption. Hide confidential messages inside ordinary images.">
   <title>SecretPix — Hide in Plain Sight</title>
   
@@ -44,12 +44,12 @@
           <button class="nav-link" data-view="viewSettings">Settings</button>
         </nav>
 
-        <div class="header-status" style="display: flex; gap: 8px; align-items: center;">
+        <div class="header-status">
           <span id="networkStatusBadge" class="badge badge-mint">
             <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--color-success); margin-right:4px;"></span>
             Online
           </span>
-          <span class="badge badge-mint">
+          <span class="badge badge-mint badge-desktop-only">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             100% Client-Side
           </span>
@@ -463,29 +463,29 @@
           
           <!-- Card 1: PWA & Auto-Update Management -->
           <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
               <div>
                 <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">PWA & Updates</h3>
                 <p style="font-size: var(--text-xs); color: var(--color-text-secondary);">Offline caching and automated update detection.</p>
               </div>
-              <span class="badge badge-mint font-mono" id="appVersionBadge">v1.1.0</span>
+              <span class="badge badge-mint font-mono" id="appVersionBadge">v1.1.1</span>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <div>
               <!-- Connection State -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Internet Connectivity</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Required for update detection; optional for core encryption</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Internet Connectivity</div>
+                  <div class="settings-row-desc">Required for update detection; optional for core encryption</div>
                 </div>
                 <span id="settingsNetworkBadge" class="badge badge-mint">Online</span>
               </div>
 
               <!-- Install State -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">PWA Installation</div>
-                  <div id="settingsInstallDesc" style="font-size: var(--text-xs); color: var(--color-text-secondary);">Installable as an air-gapped standalone application</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">PWA Installation</div>
+                  <div id="settingsInstallDesc" class="settings-row-desc">Installable as an air-gapped standalone application</div>
                 </div>
                 <div id="installButtonContainer">
                   <button type="button" class="btn btn-secondary btn-sm" id="installPwaBtn" disabled>
@@ -496,10 +496,10 @@
               </div>
 
               <!-- Check Updates -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Check for Updates</div>
-                  <div id="lastUpdateCheckText" style="font-size: var(--text-xs); color: var(--color-text-secondary);">Queries service worker for new releases over the internet</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Check for Updates</div>
+                  <div id="lastUpdateCheckText" class="settings-row-desc">Queries service worker for new releases over the internet</div>
                 </div>
                 <button type="button" class="btn btn-outline btn-sm" id="checkUpdatesBtn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -514,35 +514,35 @@
             <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">Security Parameters</h3>
             <p style="font-size: var(--text-xs); color: var(--color-text-secondary); margin-bottom: 1rem;">Active cryptographic algorithms and tamper-defense configurations.</p>
 
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">PBKDF2 Work Factor</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">SHA-256 derivation rounds (mitigates offline brute force)</div>
+            <div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">PBKDF2 Work Factor</div>
+                  <div class="settings-row-desc">SHA-256 derivation rounds (mitigates offline brute force)</div>
                 </div>
                 <span class="badge badge-mint font-mono">600,000 Iterations</span>
               </div>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">AEAD Header Integrity (AAD)</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Salt, IV, and metadata in pixels cryptographically bound to GCM tag</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">AEAD Header Integrity (AAD)</div>
+                  <div class="settings-row-desc">Salt, IV, and metadata in pixels cryptographically bound to GCM tag</div>
                 </div>
                 <span class="badge badge-success font-mono">Active (AAD)</span>
               </div>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Plaintext Length Padding</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">PKCS#7 64-byte blocks mask message length side-channels</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Plaintext Length Padding</div>
+                  <div class="settings-row-desc">PKCS#7 64-byte blocks mask message length side-channels</div>
                 </div>
                 <span class="badge badge-success font-mono">64-Byte Blocks</span>
               </div>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Dimension Guard Limit</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Maximum canvas pixel allocation to prevent browser OOM</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Dimension Guard Limit</div>
+                  <div class="settings-row-desc">Maximum canvas pixel allocation to prevent browser OOM</div>
                 </div>
                 <span class="badge badge-neutral font-mono">25 Megapixels (~100MB)</span>
               </div>
@@ -554,19 +554,19 @@
             <h3 style="font-size: var(--text-lg); margin-bottom: 4px;">Memory Hygiene & Cache</h3>
             <p style="font-size: var(--text-xs); color: var(--color-text-secondary); margin-bottom: 1rem;">Verify zero persistent storage and purge active volatile memory.</p>
 
-            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border);">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Persistent Data Storage</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Plaintext messages, passwords, and keys are NEVER written to disk</div>
+            <div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Persistent Data Storage</div>
+                  <div class="settings-row-desc">Plaintext messages, passwords, and keys are NEVER written to disk</div>
                 </div>
                 <span class="badge badge-success">Zero Disk Storage</span>
               </div>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0;">
-                <div>
-                  <div style="font-size: var(--text-sm); font-weight: 600;">Emergency Memory Purge</div>
-                  <div style="font-size: var(--text-xs); color: var(--color-text-secondary);">Instantly zero all in-memory image buffers, text inputs, and keys</div>
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <div class="settings-row-title">Emergency Memory Purge</div>
+                  <div class="settings-row-desc">Instantly zero all in-memory image buffers, text inputs, and keys</div>
                 </div>
                 <button type="button" class="btn btn-outline btn-sm" id="purgeMemoryBtn" style="color: var(--color-error); border-color: rgba(217, 83, 79, 0.3);">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -579,7 +579,7 @@
           <!-- Card 4: Hardware & Runtime Diagnostics -->
           <div class="card card-surface font-mono" style="font-size: var(--text-xs); color: var(--color-text-secondary);">
             <h4 style="font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 600; color: var(--color-text); margin-bottom: 8px;">Hardware & Runtime Diagnostics</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="diagnostics-grid">
               <div>Web Crypto API: <span id="diagCrypto" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
               <div>HTML5 Canvas API: <span id="diagCanvas" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
               <div>Dedicated Web Worker: <span id="diagWorker" style="color: var(--color-success); font-weight: 600;">Active ✅</span></div>
@@ -592,6 +592,30 @@
 
     </div>
   </main>
+
+  <!-- Mobile Bottom Navigation (Visible on screens <= 640px) -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <button type="button" class="nav-link mobile-nav-btn active" data-view="viewDashboard">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+    <button type="button" class="nav-link mobile-nav-btn" data-view="viewHide">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Hide</span>
+    </button>
+    <button type="button" class="nav-link mobile-nav-btn" data-view="viewReveal">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+      <span>Reveal</span>
+    </button>
+    <button type="button" class="nav-link mobile-nav-btn" data-view="viewSettings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+    <button type="button" class="nav-link mobile-nav-btn" data-view="viewAbout">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>About</span>
+    </button>
+  </nav>
 
   <!-- ==========================================
        MODAL: ENCODE SUCCESS & DOWNLOAD
@@ -626,7 +650,7 @@
         </div>
       </div>
 
-      <div style="display: flex; gap: var(--space-3);">
+      <div class="modal-actions">
         <button type="button" class="btn btn-primary" id="downloadEncodedImageBtn" style="flex: 2;">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download PNG Image
