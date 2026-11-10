@@ -2,7 +2,7 @@
  * Unit Test Suite for SecretPix Cryptographic Engine
  */
 
-import { encryptMessage, decryptMessage, getRandomBytes, InvalidPasswordError, CryptoError } from '../js/crypto.js';
+import { encryptMessage, decryptMessage, getRandomBytes, padBytes, unpadBytes, InvalidPasswordError, CryptoError } from '../js/crypto.js';
 import { CONFIG } from '../js/config.js';
 
 async function runTests() {
@@ -96,6 +96,32 @@ async function runTests() {
     if (err instanceof CryptoError) emptyRejected = true;
   }
   assert(emptyRejected, 'Empty plaintext throws CryptoError');
+
+  // Test 8: PKCS#7 Length Padding
+  console.log('\n[Test 8] PKCS#7 Length Padding & Unpadding');
+  const shortBytes = new Uint8Array([65, 66, 67]); // 3 bytes
+  const padded = padBytes(shortBytes, 64);
+  assert(padded.length === 64, 'Padded length aligns to 64 bytes');
+  assert(padded[63] === 61, 'Pad length value is 61');
+  const unpadded = unpadBytes(padded, 64);
+  assert(unpadded.length === 3 && unpadded[0] === 65 && unpadded[1] === 66 && unpadded[2] === 67, 'Unpadded matches original');
+
+  // Test 9: AEAD Associated Data (Header Tampering Detection)
+  console.log('\n[Test 9] AEAD Header Integrity Binding');
+  const mockHeader = new Uint8Array([0x53, 0x50, 0x49, 0x58, 0x01, 0x01]);
+  const encAead = await encryptMessage('AEAD Test Message', 'TestPassword123!', { additionalData: mockHeader });
+  const decAead = await decryptMessage(encAead.ciphertext, encAead.salt, encAead.iv, 'TestPassword123!', mockHeader);
+  assert(decAead === 'AEAD Test Message', 'AEAD roundtrip succeeds with matching additionalData');
+
+  let aeadTamperDetected = false;
+  const tamperedHeader = new Uint8Array(mockHeader);
+  tamperedHeader[0] ^= 0x01; // flip 1 bit in header
+  try {
+    await decryptMessage(encAead.ciphertext, encAead.salt, encAead.iv, 'TestPassword123!', tamperedHeader);
+  } catch (err) {
+    if (err instanceof InvalidPasswordError) aeadTamperDetected = true;
+  }
+  assert(aeadTamperDetected, 'Tampering with even 1 bit of header AAD triggers GCM authentication failure');
 
   console.log(`\n========================================`);
   console.log(`All ${passed}/${total} Crypto Engine tests PASSED successfully!`);

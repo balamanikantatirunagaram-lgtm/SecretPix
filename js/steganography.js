@@ -34,6 +34,51 @@ export class CapacityExceededError extends SteganographyError {
 }
 
 /**
+ * Create a 38-byte standardized binary protocol header
+ * @param {Uint8Array} salt
+ * @param {Uint8Array} iv
+ * @param {number} ciphertextLength
+ * @param {number} payloadType
+ * @returns {Uint8Array}
+ */
+export function createHeader(
+  salt,
+  iv,
+  ciphertextLength,
+  payloadType = CONFIG.PROTOCOL.PAYLOAD_TYPES.TEXT
+) {
+  if (!(salt instanceof Uint8Array) || salt.length !== CONFIG.CRYPTO.SALT_LENGTH_BYTES) {
+    throw new SteganographyError('Invalid salt length for header creation.');
+  }
+  if (!(iv instanceof Uint8Array) || iv.length !== CONFIG.CRYPTO.IV_LENGTH_BYTES) {
+    throw new SteganographyError('Invalid IV length for header creation.');
+  }
+
+  const header = new Uint8Array(CONFIG.PROTOCOL.HEADER_SIZE_BYTES);
+  const view = new DataView(header.buffer);
+
+  // 1. Magic bytes 'SPIX'
+  header.set(CONFIG.PROTOCOL.MAGIC_BYTES, 0);
+
+  // 2. Version byte (0x01)
+  header[4] = CONFIG.PROTOCOL.VERSION;
+
+  // 3. Payload type (0x01 for TEXT)
+  header[5] = payloadType;
+
+  // 4. Salt (16 bytes)
+  header.set(salt, 6);
+
+  // 5. IV (12 bytes)
+  header.set(iv, 22);
+
+  // 6. Ciphertext length (4 bytes Uint32 Big-Endian)
+  view.setUint32(34, ciphertextLength, false);
+
+  return header;
+}
+
+/**
  * Pack security parameters and ciphertext into a serialized binary payload buffer
  *
  * Layout:
@@ -57,41 +102,16 @@ export function packPayload(
   ciphertext,
   payloadType = CONFIG.PROTOCOL.PAYLOAD_TYPES.TEXT
 ) {
-  if (!(salt instanceof Uint8Array) || salt.length !== CONFIG.CRYPTO.SALT_LENGTH_BYTES) {
-    throw new SteganographyError('Invalid salt length for serialization.');
-  }
-  if (!(iv instanceof Uint8Array) || iv.length !== CONFIG.CRYPTO.IV_LENGTH_BYTES) {
-    throw new SteganographyError('Invalid IV length for serialization.');
-  }
   if (!(ciphertext instanceof Uint8Array) || ciphertext.length === 0) {
     throw new SteganographyError('Invalid ciphertext buffer for serialization.');
   }
 
-  const headerSize = CONFIG.PROTOCOL.HEADER_SIZE_BYTES; // 38 bytes
-  const totalLength = headerSize + ciphertext.length;
+  const header = createHeader(salt, iv, ciphertext.length, payloadType);
+  const totalLength = header.length + ciphertext.length;
   const buffer = new Uint8Array(totalLength);
-  const view = new DataView(buffer.buffer);
 
-  // 1. Magic bytes 'SPIX'
-  buffer.set(CONFIG.PROTOCOL.MAGIC_BYTES, 0);
-
-  // 2. Version byte (0x01)
-  buffer[4] = CONFIG.PROTOCOL.VERSION;
-
-  // 3. Payload type (0x01 for TEXT)
-  buffer[5] = payloadType;
-
-  // 4. Salt (16 bytes)
-  buffer.set(salt, 6);
-
-  // 5. IV (12 bytes)
-  buffer.set(iv, 22);
-
-  // 6. Ciphertext length (4 bytes Uint32 Big-Endian)
-  view.setUint32(34, ciphertext.length, false);
-
-  // 7. Ciphertext payload
-  buffer.set(ciphertext, headerSize);
+  buffer.set(header, 0);
+  buffer.set(ciphertext, header.length);
 
   return buffer;
 }
@@ -144,7 +164,8 @@ export function unpackPayload(payloadBytes) {
     throw new SteganographyError('Declared payload length exceeds buffer length. Data may be truncated.');
   }
 
-  // 8. Extract Ciphertext
+  // 8. Extract Ciphertext and full Header
+  const header = payloadBytes.slice(0, headerSize);
   const ciphertext = payloadBytes.slice(headerSize, headerSize + declaredLength);
 
   return {
@@ -153,6 +174,7 @@ export function unpackPayload(payloadBytes) {
     salt,
     iv,
     ciphertext,
+    header,
   };
 }
 
@@ -355,6 +377,14 @@ export function extractPayloadFromImageData(imageData) {
     );
   }
 
+  // Assemble the exact 38-byte header slice for AEAD verification
+  const header = new Uint8Array(headerSize);
+  header.set(magic, 0);
+  header.set(verAndType, 4);
+  header.set(salt, 6);
+  header.set(iv, 22);
+  header.set(lengthBytes, 34);
+
   // 6. Read Ciphertext bytes
   const ciphertext = readNextBytes(ciphertextLength);
 
@@ -364,5 +394,6 @@ export function extractPayloadFromImageData(imageData) {
     salt,
     iv,
     ciphertext,
+    header,
   };
 }

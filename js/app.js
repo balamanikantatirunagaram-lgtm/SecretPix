@@ -4,7 +4,7 @@
 
 import { switchView, showToast, evaluatePasswordStrength, formatBytes, ICONS } from './ui.js';
 import { CONFIG } from './config.js';
-import { encryptMessage, decryptMessage, InvalidPasswordError } from './crypto.js';
+import { encryptMessage, decryptMessage, getRandomBytes, InvalidPasswordError } from './crypto.js';
 import {
   validateImageFile,
   loadImageElement,
@@ -15,6 +15,7 @@ import {
   triggerFileDownload,
 } from './image.js';
 import {
+  createHeader,
   packPayload,
   embedPayloadInImageData,
   extractPayloadFromImageData,
@@ -32,6 +33,7 @@ const state = {
     width: 0,
     height: 0,
     encodedBlob: null,
+    modalPreviewUrl: null,
   },
   reveal: {
     file: null,
@@ -95,10 +97,20 @@ class StegoWorkerClient {
       });
     } else {
       // Graceful in-thread execution fallback
-      if (onProgress) onProgress('Deriving key with PBKDF2 (600k rounds) & encrypting...', 30);
-      const { ciphertext, salt, iv } = await encryptMessage(params.message, params.password);
+      const plaintextBytes = new TextEncoder().encode(params.message);
+      const blockSize = CONFIG.CRYPTO.PADDING_BLOCK_SIZE || 64;
+      const padLen = blockSize - (plaintextBytes.length % blockSize);
+      const paddedLength = plaintextBytes.length + padLen;
+      const ciphertextLength = paddedLength + (CONFIG.CRYPTO.TAG_LENGTH_BITS / 8);
 
-      if (onProgress) onProgress('Packing binary steganographic protocol...', 60);
+      const salt = getRandomBytes(CONFIG.CRYPTO.SALT_LENGTH_BYTES);
+      const iv = getRandomBytes(CONFIG.CRYPTO.IV_LENGTH_BYTES);
+      const header = createHeader(salt, iv, ciphertextLength);
+
+      if (onProgress) onProgress('Deriving key with PBKDF2 (600k rounds) & encrypting...', 30);
+      const { ciphertext } = await encryptMessage(params.message, params.password, { salt, iv, additionalData: header });
+
+      if (onProgress) onProgress('Packing binary steganographic protocol with AEAD integrity...', 60);
       const binaryPayload = packPayload(salt, iv, ciphertext);
 
       if (onProgress) onProgress('Embedding encrypted bits into image pixels...', 85);
@@ -147,10 +159,10 @@ class StegoWorkerClient {
     } else {
       // Graceful in-thread execution fallback
       if (onProgress) onProgress('Extracting hidden payload from pixels...', 35);
-      const { salt, iv, ciphertext } = extractPayloadFromImageData(params.imageData);
+      const { salt, iv, ciphertext, header } = extractPayloadFromImageData(params.imageData);
 
-      if (onProgress) onProgress('Deriving key & decrypting ciphertext...', 75);
-      const decryptedText = await decryptMessage(ciphertext, salt, iv, params.password);
+      if (onProgress) onProgress('Deriving key & verifying AEAD integrity...', 75);
+      const decryptedText = await decryptMessage(ciphertext, salt, iv, params.password, header);
 
       return { decryptedText };
     }
@@ -287,6 +299,11 @@ function initHideWorkspace() {
   removeBtn.addEventListener('click', () => {
     revokeImageElement(state.hide.imageElement);
 
+    if (state.hide.modalPreviewUrl) {
+      try { URL.revokeObjectURL(state.hide.modalPreviewUrl); } catch (e) {}
+      state.hide.modalPreviewUrl = null;
+    }
+
     state.hide.file = null;
     state.hide.imageElement = null;
     state.hide.imageData = null;
@@ -361,10 +378,14 @@ function initHideWorkspace() {
 
     if (hasImage) {
       const textBytesLength = new TextEncoder().encode(message).length;
-      const estimatedPayloadBytes = message.length > 0 ? textBytesLength + CONFIG.PROTOCOL.TOTAL_OVERHEAD_BYTES : 0;
+      const blockSize = CONFIG.CRYPTO.PADDING_BLOCK_SIZE || 64;
+      const padLen = textBytesLength > 0 ? (blockSize - (textBytesLength % blockSize)) : 0;
+      const paddedBytesLength = textBytesLength + padLen;
+      const estimatedPayloadBytes = message.length > 0 ? paddedBytesLength + CONFIG.PROTOCOL.TOTAL_OVERHEAD_BYTES : 0;
       const capacity = calculateCapacity(state.hide.width, state.hide.height, estimatedPayloadBytes);
 
-      capacityFill.style.width = `${capacity.usagePercentage}%`;
+      const visualPercent = Math.min(100, Math.max(0, capacity.usagePercentage));
+      capacityFill.style.width = `${visualPercent}%`;
       capacityPercentBadge.textContent = `${capacity.usagePercentage}%`;
       capacityUsedText.textContent = `Payload: ${formatBytes(capacity.usedBytes)}`;
       capacityMaxText.textContent = `Available: ${formatBytes(capacity.usableCapacityBytes)}`;
@@ -414,10 +435,16 @@ function initHideWorkspace() {
       const pngBlob = await exportImageDataToPngBlob(encodedImageData);
       state.hide.encodedBlob = pngBlob;
 
-      // 4. Show Success Modal
+      // 4. Show Success Modal (revoke previous modal preview URL if existing)
+      if (state.hide.modalPreviewUrl) {
+        try { URL.revokeObjectURL(state.hide.modalPreviewUrl); } catch (e) {}
+        state.hide.modalPreviewUrl = null;
+      }
+      state.hide.modalPreviewUrl = URL.createObjectURL(pngBlob);
+
       const modal = document.getElementById('encodeSuccessModal');
       const modalPreview = document.getElementById('modalSuccessPreview');
-      modalPreview.src = URL.createObjectURL(pngBlob);
+      modalPreview.src = state.hide.modalPreviewUrl;
       modal.classList.add('active');
 
       showToast('Image successfully encrypted and embedded!', 'success', 3500);
@@ -439,6 +466,19 @@ function initHideWorkspace() {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         triggerFileDownload(state.hide.encodedBlob, `secretpix-${timestamp}.png`);
         showToast('PNG image downloaded.', 'success', 2500);
+      }
+    });
+  }
+
+  // Modal Close ("Done") Button & Click Outside
+  const closeSuccessModalBtn = document.getElementById('closeSuccessModalBtn');
+  const encodeSuccessModal = document.getElementById('encodeSuccessModal');
+  if (closeSuccessModalBtn && encodeSuccessModal) {
+    closeSuccessModalBtn.addEventListener('click', () => {
+      encodeSuccessModal.classList.remove('active');
+      if (state.hide.modalPreviewUrl) {
+        try { URL.revokeObjectURL(state.hide.modalPreviewUrl); } catch (e) {}
+        state.hide.modalPreviewUrl = null;
       }
     });
   }

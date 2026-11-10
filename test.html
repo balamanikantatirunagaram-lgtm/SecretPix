@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SecretPix — Automated Test Runner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
@@ -109,9 +106,10 @@
 
   <!-- Test Runner Script -->
   <script type="module">
-    import { encryptMessage, decryptMessage, getRandomBytes, InvalidPasswordError, CryptoError } from './js/crypto.js';
+    import { encryptMessage, decryptMessage, getRandomBytes, padBytes, unpadBytes, InvalidPasswordError, CryptoError } from './js/crypto.js';
     import { calculateCapacity, validateImageFile, extractImageDataFromImage, ImageProcessingError } from './js/image.js';
     import {
+      createHeader,
       packPayload,
       unpackPayload,
       embedPayloadInImageData,
@@ -204,12 +202,12 @@
       // Test 4: Ciphertext Tampering Detection (1 bit flip)
       try {
         const secret = 'Tamper Verification';
-        const { ciphertext, salt, iv } = await encryptMessage(secret, 'Pass123');
+        const { ciphertext, salt, iv } = await encryptMessage(secret, 'Pass1234!');
         const tampered = new Uint8Array(ciphertext);
         tampered[0] ^= 0x01; // flip 1 bit
         let caught = false;
         try {
-          await decryptMessage(tampered, salt, iv, 'Pass123');
+          await decryptMessage(tampered, salt, iv, 'Pass1234!');
         } catch (err) {
           if (err instanceof InvalidPasswordError) caught = true;
         }
@@ -312,18 +310,64 @@
         renderTestResult('Test 9: Fast SPIX Header Scanner', false, e.message);
       }
 
-      // Test 10: Complete End-to-End Workflow Round-Trip
+      // Test 10: PKCS#7 Length Padding
+      try {
+        const raw = new Uint8Array([1, 2, 3, 4, 5]);
+        const padded = padBytes(raw, 64);
+        const unpadded = unpadBytes(padded, 64);
+        const padSuccess = padded.length === 64 && unpadded.length === 5;
+        renderTestResult('Test 10: PKCS#7 Length Padding (Side-Channel Defense)', padSuccess, `Short 5-byte payload padded to 64 bytes; padding cleanly stripped upon decoding.`);
+      } catch (e) {
+        renderTestResult('Test 10: PKCS#7 Length Padding (Side-Channel Defense)', false, e.message);
+      }
+
+      // Test 11: AEAD Header Tampering Detection
+      try {
+        const msg = 'AEAD Integrity Guard Test';
+        const pwd = 'TestPassword123!';
+        const mockSalt = getRandomBytes(16);
+        const mockIv = getRandomBytes(12);
+        const header = createHeader(mockSalt, mockIv, 80);
+
+        const { ciphertext } = await encryptMessage(msg, pwd, { salt: mockSalt, iv: mockIv, additionalData: header });
+        
+        let headerTamperCaught = false;
+        const tamperedHeader = new Uint8Array(header);
+        tamperedHeader[6] ^= 0x01; // flip 1 bit in salt inside header AAD
+
+        try {
+          await decryptMessage(ciphertext, mockSalt, mockIv, pwd, tamperedHeader);
+        } catch (err) {
+          if (err instanceof InvalidPasswordError) headerTamperCaught = true;
+        }
+
+        renderTestResult('Test 11: AEAD Header Integrity Binding', headerTamperCaught, `Tampering with salt/IV/length in the header AAD triggers GCM authentication failure.`);
+      } catch (e) {
+        renderTestResult('Test 11: AEAD Header Integrity Binding', false, e.message);
+      }
+
+      // Test 12: Complete End-to-End Workflow Round-Trip
       try {
         const originalMessage = 'SecretPix Full Workflow Verification: 2026 Pass! 🚀';
         const password = 'SuperSecureSecret123!';
 
-        // 1. Encrypt
-        const { ciphertext, salt, iv } = await encryptMessage(originalMessage, password);
+        // 1. Calculate padded ciphertext length for header AAD
+        const plaintextBytes = new TextEncoder().encode(originalMessage);
+        const padLen = 64 - (plaintextBytes.length % 64);
+        const paddedLength = plaintextBytes.length + padLen;
+        const ciphertextLength = paddedLength + 16;
 
-        // 2. Pack
+        const salt = getRandomBytes(16);
+        const iv = getRandomBytes(12);
+        const header = createHeader(salt, iv, ciphertextLength);
+
+        // 2. Encrypt with AEAD header binding
+        const { ciphertext } = await encryptMessage(originalMessage, password, { salt, iv, additionalData: header });
+
+        // 3. Pack
         const payload = packPayload(salt, iv, ciphertext);
 
-        // 3. Synthetic Canvas Image
+        // 4. Synthetic Canvas Image
         const canvas = document.createElement('canvas');
         canvas.width = 120;
         canvas.height = 120;
@@ -332,21 +376,21 @@
         ctx.fillRect(0, 0, 120, 120);
         const imgData = ctx.getImageData(0, 0, 120, 120);
 
-        // 4. Embed
+        // 5. Embed
         embedPayloadInImageData(imgData, payload);
         ctx.putImageData(imgData, 0, 0);
 
-        // 5. Extract
+        // 6. Extract
         const extractedImgData = ctx.getImageData(0, 0, 120, 120);
         const extracted = extractPayloadFromImageData(extractedImgData);
 
-        // 6. Decrypt
-        const recovered = await decryptMessage(extracted.ciphertext, extracted.salt, extracted.iv, password);
+        // 7. Decrypt with AEAD header verification
+        const recovered = await decryptMessage(extracted.ciphertext, extracted.salt, extracted.iv, password, extracted.header);
 
         const match = recovered === originalMessage;
-        renderTestResult('Test 10: Full End-to-End Canvas Round-Trip', match, `Full pipeline verified: Message $\\rightarrow$ PBKDF2/AES-GCM $\\rightarrow$ Canvas LSB $\\rightarrow$ Extraction $\\rightarrow$ Decryption. Exact match.`);
+        renderTestResult('Test 12: Full End-to-End Canvas Round-Trip', match, `Full pipeline verified: Message $\\rightarrow$ PKCS#7 $\\rightarrow$ AEAD GCM $\\rightarrow$ Canvas LSB $\\rightarrow$ Extraction $\\rightarrow$ Decryption. Exact match.`);
       } catch (e) {
-        renderTestResult('Test 10: Full End-to-End Canvas Round-Trip', false, e.message);
+        renderTestResult('Test 12: Full End-to-End Canvas Round-Trip', false, e.message);
       }
     }
 

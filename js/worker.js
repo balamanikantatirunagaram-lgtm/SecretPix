@@ -4,10 +4,13 @@
  * Runs off the main UI thread to prevent UI freezing during:
  * - PBKDF2 key derivation (600,000 SHA-256 iterations)
  * - Intensive pixel traversal across multi-megapixel images
+ * - AEAD header integrity binding and PKCS#7 length padding
  */
 
-import { encryptMessage, decryptMessage, InvalidPasswordError } from './crypto.js';
+import { CONFIG } from './config.js';
+import { encryptMessage, decryptMessage, getRandomBytes, InvalidPasswordError } from './crypto.js';
 import {
+  createHeader,
   packPayload,
   embedPayloadInImageData,
   extractPayloadFromImageData,
@@ -22,19 +25,30 @@ self.onmessage = async (e) => {
     if (type === 'ENCRYPT_AND_EMBED') {
       const { imageData, message, password } = payload;
 
-      // Stage 1: Deriving key and encrypting
+      // Stage 1: Deriving key and encrypting with AEAD header binding
       self.postMessage({
         status: 'PROGRESS',
         stage: 'Deriving key with PBKDF2 (600k rounds) & encrypting...',
         percent: 25,
       });
 
-      const { ciphertext, salt, iv } = await encryptMessage(message, password);
+      // 1. Calculate padded ciphertext length for header AAD
+      const plaintextBytes = new TextEncoder().encode(message);
+      const blockSize = CONFIG.CRYPTO.PADDING_BLOCK_SIZE || 64;
+      const padLen = blockSize - (plaintextBytes.length % blockSize);
+      const paddedLength = plaintextBytes.length + padLen;
+      const ciphertextLength = paddedLength + (CONFIG.CRYPTO.TAG_LENGTH_BITS / 8);
+
+      const salt = getRandomBytes(CONFIG.CRYPTO.SALT_LENGTH_BYTES);
+      const iv = getRandomBytes(CONFIG.CRYPTO.IV_LENGTH_BYTES);
+      const header = createHeader(salt, iv, ciphertextLength);
+
+      const { ciphertext } = await encryptMessage(message, password, { salt, iv, additionalData: header });
 
       // Stage 2: Packaging binary payload
       self.postMessage({
         status: 'PROGRESS',
-        stage: 'Packing binary steganographic protocol...',
+        stage: 'Packing binary steganographic protocol with AEAD integrity...',
         percent: 50,
       });
 
@@ -65,16 +79,16 @@ self.onmessage = async (e) => {
         percent: 30,
       });
 
-      const { salt, iv, ciphertext } = extractPayloadFromImageData(imageData);
+      const { salt, iv, ciphertext, header } = extractPayloadFromImageData(imageData);
 
-      // Stage 2: Deriving key and decrypting
+      // Stage 2: Deriving key and decrypting with AAD verification
       self.postMessage({
         status: 'PROGRESS',
-        stage: 'Deriving key & decrypting ciphertext...',
+        stage: 'Deriving key & verifying AEAD integrity...',
         percent: 70,
       });
 
-      const decryptedText = await decryptMessage(ciphertext, salt, iv, password);
+      const decryptedText = await decryptMessage(ciphertext, salt, iv, password, header);
 
       // Success
       self.postMessage({

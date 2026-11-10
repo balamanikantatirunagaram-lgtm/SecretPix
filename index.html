@@ -6,11 +6,6 @@
   <meta name="description" content="SecretPix — Privacy-focused client-side image steganography and AES-256-GCM encryption. Hide confidential messages inside ordinary images.">
   <title>SecretPix — Hide in Plain Sight</title>
   
-  <!-- Inter Font Family -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
@@ -262,7 +257,7 @@
                   <span class="form-label-desc">Used for AES-256-GCM derivation (min 8 chars)</span>
                 </div>
                 <div class="password-input-wrapper">
-                  <input type="password" id="hidePasswordInput" class="input-field" placeholder="Enter a strong password">
+                  <input type="password" id="hidePasswordInput" class="input-field" placeholder="Enter a strong password" autocomplete="new-password">
                   <button type="button" class="password-toggle-btn" id="toggleHidePassword" aria-label="Toggle password visibility">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
@@ -283,7 +278,7 @@
                   <span id="passwordMatchBadge" class="form-label-desc"></span>
                 </div>
                 <div class="password-input-wrapper">
-                  <input type="password" id="hideConfirmPasswordInput" class="input-field" placeholder="Re-type your password">
+                  <input type="password" id="hideConfirmPasswordInput" class="input-field" placeholder="Re-type your password" autocomplete="new-password">
                 </div>
               </div>
 
@@ -351,7 +346,7 @@
                   <span class="form-label-desc">Required to unlock payload</span>
                 </div>
                 <div class="password-input-wrapper">
-                  <input type="password" id="revealPasswordInput" class="input-field" placeholder="Enter the secret password">
+                  <input type="password" id="revealPasswordInput" class="input-field" placeholder="Enter the secret password" autocomplete="current-password">
                   <button type="button" class="password-toggle-btn" id="toggleRevealPassword" aria-label="Toggle password visibility">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>

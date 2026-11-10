@@ -32,6 +32,7 @@ export const CONFIG = {
     PBKDF2_HASH: 'SHA-256',
     PBKDF2_ITERATIONS: 600000, // NIST Recommended baseline
     MIN_PASSWORD_LENGTH: 8,
+    PADDING_BLOCK_SIZE: 64, // Mitigate plaintext length side-channel
   },
 
   // Image & File Constraints
